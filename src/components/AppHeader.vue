@@ -31,6 +31,8 @@ defineProps({ showLanguage: { type: Boolean, default: false } });
   display: flex; align-items: center; gap: 16px; padding: 8px 16px; min-height: 48px;
   background: var(--brand); color: #fff;
 }
+/* A phone: tighter, so a document's name has room beside its buttons. */
+@media (max-width: 560px) { .app-header { gap: 8px; padding: 8px 12px; } }
 .brand { display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font-weight: 600; font-size: 1.05rem; }
 .mark { flex: none; }
 .mark .page { fill: #fff; }

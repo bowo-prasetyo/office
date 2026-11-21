@@ -192,7 +192,8 @@ Saying no to these keeps the product small enough to keep its promises:
 - Design headers and footers: a different first page, different odd and even pages ✔
 - Tests that save a new document of each kind and check it as Word reads it ✔ (starters)
 - The tools in tabs, as Word's ribbon (Home, Insert, Layout, References, Review), with every tool in
-  one toolbar still a choice ✔
+  one toolbar still a choice ✔; the File and View tabs, where Word users look for saving, printing,
+  protecting and checking the file, and for the Navigation pane and zoom ✔
 - Long manuscripts and their editing rounds: indents in Modify Style (Normal with a first-line
   indent) ✔; Show markup, simple or none, to read an edited draft clean ✔; Previous and Next
   comment ✔; a manuscript starter in standard manuscript format ✔; the original (before the
@@ -229,7 +230,8 @@ Saying no to these keeps the product small enough to keep its promises:
   HR files): open documents encrypted with a password, decrypted on the device, and download them
   encrypted again, or protect any document with one ✔ (the password never leaves the device, so
   "Private" holds; it is the files that most need it); a redline from Compare, the changes since
-  the other version as tracked changes, to send back as Word's Compare makes one ✔
+  the other version as tracked changes, to send back as Word's Compare makes one ✔; on a phone, a
+  document to review puts Accept, Reject and the comments first in the toolbar ✔
 
 ## How we'll know it's working
 

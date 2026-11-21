@@ -183,4 +183,49 @@ test.describe('on a phone', () => {
     expect(await page.locator('.statusbar').evaluate((el) => el.offsetHeight)).toBeLessThan(30); // still one line
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   });
+
+  // Approving a document between meetings: with tracked changes (or comments) to go through, the
+  // review's tools come first, after Undo and Redo, with Accept and Reject named; and it says so.
+  test('a document with tracked changes puts Accept and Reject first, and says so', async ({ page }) => {
+    const tracked = '<w:p><w:r><w:t xml:space="preserve">The fee is </w:t></w:r>'
+      + '<w:del w:id="1" w:author="Legal" w:date="2026-01-01T00:00:00Z"><w:r><w:delText>200</w:delText></w:r></w:del>'
+      + '<w:ins w:id="2" w:author="Legal" w:date="2026-01-01T00:00:00Z"><w:r><w:t>250</w:t></w:r></w:ins><w:r><w:t xml:space="preserve"> euros.</w:t></w:r></w:p>';
+    await openInEditor(page, await buildDocx(TEXT + tracked), 'Contract.docx');
+    await expect(status(page)).toHaveText('2 tracked changes to review: Accept and Reject are first in the toolbar');
+    const shown = await page.evaluate(() => [...document.querySelectorAll('.toolbar button, .toolbar select')]
+      .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right <= innerWidth; })
+      .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
+      .map((e) => e.getAttribute('aria-label') || e.title));
+    expect(shown.slice(0, 5)).toEqual(['Undo', 'Redo', 'Previous change', 'Next change', 'Accept the change (or the changes selected) and go to the next']);
+    const accept = page.locator('.changes-group .labelled').first();
+    await expect(accept).toContainText('Accept'); // named, not just a tick
+    // The arrow keys follow what is shown.
+    await page.locator('.docx-page p').first().click();
+    await page.keyboard.press('Alt+F10');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('button', { name: 'Previous change' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    // Next, then Accept: through the changes with a thumb.
+    await page.getByRole('button', { name: 'Next change' }).click();
+    await accept.click();
+    await accept.click();
+    await expect(page.locator('.changes-group .badge')).toHaveText('0');
+    await expect(page.locator('.docx-page')).toContainText('The fee is 250 euros.');
+    // Nothing left to review: the editing tools come first again.
+    const first = await page.evaluate(() => [...document.querySelectorAll('.toolbar button')]
+      .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right <= innerWidth; })
+      .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
+      .map((e) => e.getAttribute('aria-label') || e.title).slice(0, 3));
+    expect(first).toEqual(['Undo', 'Redo', 'Bold']);
+  });
+
+  test('the header leaves the file’s name room: Open and Close are icons, named for screen readers', async ({ page }) => {
+    await openInEditor(page, await buildDocx(TEXT), 'Quarterly report.docx');
+    await expect(page.locator('.app-header').getByRole('button', { name: 'Close' })).toBeVisible();
+    await expect(page.locator('.app-header .close-doc .label')).toBeHidden();
+    const name = await page.locator('.app-header .filename').boundingBox();
+    expect(name.width).toBeGreaterThan(110); // was about 60 pixels: "Quart"
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  });
 });

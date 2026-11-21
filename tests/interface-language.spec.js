@@ -41,7 +41,7 @@ test.describe('in Indonesian', () => {
     await page.goto('./');
     await page.setInputFiles('input[type=file]', { name: 'surat.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: await buildDocx('<w:p><w:r><w:t>Isi surat.</w:t></w:r></w:p>') });
     await expect(page.locator('.docx-page')).toBeVisible();
-    await expect(page.getByRole('tab')).toHaveText(['Beranda', 'Sisipkan', 'Tata Letak', 'Referensi', 'Tinjau']);
+    await expect(page.getByRole('tab')).toHaveText(['File', 'Beranda', 'Sisipkan', 'Tata Letak', 'Referensi', 'Tinjau', 'Tampilan']);
     await expect(page.getByRole('button', { name: 'Tebal' })).toBeVisible();
     await expect(page.locator('.app-header').getByRole('button', { name: 'Unduh' })).toBeVisible();
     await expect(page.locator('.statusbar')).toContainText('2 kata · 10 karakter');

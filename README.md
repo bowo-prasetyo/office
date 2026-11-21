@@ -935,10 +935,18 @@ a version it can't read, and asks for the password of one encrypted with a passw
   (line break), Ctrl+Shift+Space (non-breaking space), Ctrl+Shift+E (Track Changes), Ctrl+K (link), Ctrl+F/H,
   Ctrl+Z/Y, Ctrl+S; Cmd on a Mac. Some browsers keep a few keys for themselves
 - The ribbon, as Word's: the toolbar's tools in tabs, one tab's at a time on one row of a laptop's
-  screen: Home (styles, fonts, formatting, paragraphs, lists, Find, formatting marks), Insert (link,
-  check box, date and references, symbol, picture, signature, table, Fill in), Layout (Page setup,
-  page numbers, table layout), References (footnotes, endnotes, updating fields) and Review (Track
-  Changes, accepting and rejecting, the review, comments). Undo, Redo and Help are in every tab. The
+  screen: File (Download, or Save to the file opened, and Download a copy; Save as; Print; Save as
+  PDF; Share; Copy for the web; Mail merge; Protect with password, or Change or remove password;
+  Inspect document, the review at Before you release; Check accessibility), Home (styles, fonts,
+  formatting, paragraphs, lists, Find, formatting marks), Insert (link, check box, date and
+  references, symbol, picture, signature, table, Fill in), Layout (Page setup, page numbers, table
+  layout), References (footnotes, endnotes, updating fields), Review (Track Changes, accepting and
+  rejecting, the review, comments) and View (the Navigation pane, zoom with Word's levels and back
+  to 100%, formatting marks and Show markup), where Word users look for them. Home is the tab chosen
+  first, as in Word. A tool can be in more than one tab (formatting marks in Home and View, Show
+  markup in Review and View): one control, shown in each. The File and View tabs' own tools are the
+  ribbon's: "All tools" and a phone leave them to Download's menu (▾) and the status bar, which have
+  them. Undo, Redo and Help are in every tab. The
   Review tab shows how many tracked changes are waiting, and the Layout tab is marked while the caret
   is in a table, as Word shows its table tabs. ← and → (Home, End) choose a tab, as WAI-ARIA's tabs
   have it; Alt+F10 goes to the tab's tools. "All tools" shows every tool at once in one toolbar
@@ -956,7 +964,14 @@ a version it can't read, and asks for the password of one encrypted with a passw
   On a phone it is one row that scrolls sideways, faded at the edge where more controls are, with
   touch-sized buttons. The tools a phone is used for come first (Undo, Redo, Bold, Italic,
   Underline, Highlight, the lists, Insert, Draw signature, Insert picture and New comment), the rest a
-  swipe away, and the arrow keys follow that order. The status bar is one line, and what just happened
+  swipe away, and the arrow keys follow that order. A document with tracked changes or comments to
+  go through, as one to approve between meetings, puts the review's tools first instead: Undo and
+  Redo, then Previous and Next change, Accept and Reject (named, not just a tick and a cross) with
+  their menus and the count, then New comment and the comments; the status bar says so once when it
+  opens ("2 tracked changes and 1 comment to review: Accept and Reject are first in the toolbar").
+  Once nothing is left to review, the editing tools come first again. The header leaves the file's
+  name room: Open and Close are their icons (named for screen readers), with less space between
+  them. The status bar is one line, and what just happened
   ("Check box inserted", "Shared letter.docx") comes first in it, rather than out of sight at its
   end; zoom is left to the phone's pinch. Nothing makes the document scroll sideways
   there: a picture wider than the screen is shown smaller (its size in the file unchanged), and what

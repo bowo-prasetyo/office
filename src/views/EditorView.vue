@@ -20,7 +20,10 @@
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M9 2.5h4.5V7M13.5 2.5 8 8M6.5 3.5H3.5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>
         <span class="label">{{ t('Open') }}</span>
       </button>
-      <button class="ghost" type="button" @click="close">{{ t('Close') }}</button>
+      <button class="ghost close-doc" type="button" :aria-label="t('Close')" :title="t('Close the document')" @click="close">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+        <span class="label">{{ t('Close') }}</span>
+      </button>
     </AppHeader>
 
     <div v-if="restrictions.length" class="restriction-bar" :class="{ unlocked: unlocked || !lockMode }" role="region" :aria-label="t('Restrictions on this document')">
@@ -72,11 +75,11 @@
       <span class="ribbon-spacer" />
       <button type="button" class="ribbon-mode" :title="t('Show every tool at once, in one toolbar without tabs')" @click="setRibbon(false)">{{ t('All tools') }}</button>
     </div>
-    <div id="editor-toolbar" ref="toolbarEl" class="toolbar" :class="{ ribbon }" :data-active="ribbon ? ribbonTab : null" role="toolbar" :aria-label="ribbon ? t('{tab} tools', { tab: t(RIBBON_TABS.find((x) => x.id === ribbonTab).label) }) : t('Editing and review')" :aria-labelledby="ribbon ? `ribbon-tab-${ribbonTab}` : null" @mousedown="keepFocus">
+    <div id="editor-toolbar" ref="toolbarEl" class="toolbar" :class="{ ribbon, 'review-first': reviewFirst }" :data-active="ribbon ? ribbonTab : null" role="toolbar" :aria-label="ribbon ? t('{tab} tools', { tab: t(RIBBON_TABS.find((x) => x.id === ribbonTab).label) }) : t('Editing and review')" :aria-labelledby="ribbon ? `ribbon-tab-${ribbonTab}` : null" @mousedown="keepFocus">
       <div class="tb-group">
       <fieldset class="group" :disabled="textLocked" :title="textLocked ? lockMessage : null">
-      <button type="button" class="ph" :title="t('Undo (Ctrl+Z)')" :aria-label="t('Undo')" @click="undo">↶</button>
-      <button type="button" class="ph" :title="t('Redo (Ctrl+Y)')" :aria-label="t('Redo')" @click="redo">↷</button>
+      <button type="button" class="ph ur" :title="t('Undo (Ctrl+Z)')" :aria-label="t('Undo')" @click="undo">↶</button>
+      <button type="button" class="ph ur" :title="t('Redo (Ctrl+Y)')" :aria-label="t('Redo')" @click="redo">↷</button>
       <span class="sep" />
       <select data-tab="home" class="style-choice" :value="state.block" :aria-label="t('Paragraph style')" :title="t('Paragraph style (Ctrl+Shift+N, Ctrl+Alt+1–3)')" @change="onStyleMenu">
         <option value="normal">{{ t('Normal') }}</option>
@@ -217,6 +220,44 @@
       </fieldset>
       </div>
       <div class="tb-group">
+      <!-- The File tab, as Word's File menu (its Backstage): saving, printing, sharing and protecting the
+           file, and checking it before it goes. The same as Download's menu (▾), so they show in the
+           ribbon's File tab only, not in "All tools" or on a phone, where that menu has them. -->
+      <button data-tab="file" type="button" :title="fileHandle ? `Save to ${fileHandle.name} (Ctrl+S)` : t('Download the Word document (Ctrl+S)')" :aria-label="fileHandle ? t('Save') : t('Download')" @click="saveMenuAction('docx')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 2v8M4.8 7 8 10.2 11.2 7M2.5 12.5v1.2h11v-1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg><span class="short-label">{{ fileHandle ? t('Save') : t('Download') }}</span>
+      </button>
+      <button v-if="fileHandle" data-tab="file" type="button" :title="t('Download a copy, to Downloads')" :aria-label="t('Download a copy')" @click="saveMenuAction('copy')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 2v7M5 6.2 8 9.2l3-3M2.5 12.5v1.2h11v-1.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none" /><circle cx="13" cy="3" r="1.5" fill="currentColor" /></svg><span class="short-label">{{ t('Copy') }}</span>
+      </button>
+      <button v-if="canSaveAs" data-tab="file" type="button" :title="t('Save as: a file on this device, which Save writes to after')" :aria-label="t('Save as')" @click="saveMenuAction('saveAs')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2.5 2.5h9l2 2v9h-11z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none" /><path d="M5 2.5v3.5h5V2.5M5 13.5V9.5h6v4" stroke="currentColor" stroke-width="1.2" fill="none" /></svg><span class="short-label">{{ t('Save as') }}</span>
+      </button>
+      <span class="sep" data-tab="file" />
+      <button data-tab="file" type="button" :title="t('Print (Ctrl+P): the document on its own paper, without the editor')" :aria-label="t('Print')" @click="printDocument">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4.5 6V2.5h7V6M4.5 11.5h-2V6h11v5.5h-2" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none" /><path d="M4.5 9.5h7v4h-7z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none" /></svg><span class="short-label">{{ t('Print') }}</span>
+      </button>
+      <button data-tab="file" type="button" :title="t('Save as PDF, from the print window')" :aria-label="t('Save as PDF')" aria-haspopup="dialog" @click="saveMenuAction('pdf')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3.5 1.8h6.2l3 3v9.4h-9.2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none" /><path d="M5.5 11.5V8h1.2a1 1 0 0 1 0 2H5.5" stroke="currentColor" stroke-width="1" fill="none" /></svg><span class="short-label">{{ t('PDF') }}</span>
+      </button>
+      <button v-if="canShareFiles" data-tab="file" type="button" :title="t('Share the file: mail, messages…')" :aria-label="t('Share')" @click="saveMenuAction('share')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="12" cy="3.5" r="1.8" stroke="currentColor" stroke-width="1.2" fill="none" /><circle cx="4" cy="8" r="1.8" stroke="currentColor" stroke-width="1.2" fill="none" /><circle cx="12" cy="12.5" r="1.8" stroke="currentColor" stroke-width="1.2" fill="none" /><path d="M5.6 7.1 10.4 4.4M5.6 8.9l4.8 2.7" stroke="currentColor" stroke-width="1.2" /></svg><span class="short-label">{{ t('Share') }}</span>
+      </button>
+      <button data-tab="file" type="button" :title="t('Copy for the web: the document, for a website’s editor (CMS) or an e-mail')" :aria-label="t('Copy for the web')" @click="saveMenuAction('web')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.2" fill="none" /><path d="M2.2 8h11.6M8 2.2c-2 2-2 9.6 0 11.6M8 2.2c2 2 2 9.6 0 11.6" stroke="currentColor" stroke-width="1.1" fill="none" /></svg><span class="short-label">{{ t('Web') }}</span>
+      </button>
+      <button data-tab="file" type="button" :title="t('Mail merge: a letter for each row of a list (a CSV from Excel or Google Sheets)')" :aria-label="t('Mail merge')" aria-haspopup="dialog" @click="saveMenuAction('merge')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M1.8 4h9.4v7H1.8z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none" /><path d="M1.8 4l4.7 3.6L11.2 4" stroke="currentColor" stroke-width="1.2" fill="none" /><path d="M5 13.2h9.2V6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none" /></svg><span class="short-label">{{ t('Mail merge') }}</span>
+      </button>
+      <span class="sep" data-tab="file" />
+      <button data-tab="file" type="button" :title="passwordProtected ? t('Change or remove the password the file is encrypted with') : t('Protect with password: encrypt the file, as Word’s Encrypt with Password')" :aria-label="passwordProtected ? t('Change or remove password') : t('Protect with password')" aria-haspopup="dialog" :class="{ on: passwordProtected }" :aria-pressed="passwordProtected" @click="saveMenuAction('password')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.4" fill="none" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" stroke-width="1.4" fill="none" /></svg><span class="short-label">{{ t('Protect') }}</span>
+      </button>
+      <button data-tab="file" type="button" :title="t('Inspect document: what the file carries beyond the page (comments, tracked changes, hidden text, personal information), before you release it')" :aria-label="t('Inspect document')" aria-haspopup="dialog" @click="openReview('release')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="7" cy="7" r="4.2" stroke="currentColor" stroke-width="1.4" fill="none" /><path d="M10.1 10.1 14 14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" /><path d="M5.2 7h3.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg><span class="short-label">{{ t('Inspect') }}</span>
+      </button>
+      <button data-tab="file" type="button" :title="t('Check accessibility: alt text, headings, tables, contrast and the like, before publishing')" :aria-label="t('Check accessibility')" aria-haspopup="dialog" @click="openReview('accessibility')">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="2.8" r="1.4" fill="currentColor" /><path d="M2.8 5.6 8 6.8l5.2-1.2M8 6.8v3.4M8 10.2l-2.4 4M8 10.2l2.4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg><span class="short-label">{{ t('Accessibility') }}</span>
+      </button>
       <span class="sep" data-tab="classic" />
       <button data-tab="home" type="button" :title="t('Find and replace (Ctrl+F, Ctrl+H)')" :aria-label="t('Find and replace')" :class="{ on: findOpen }" :aria-pressed="findOpen" @click="findOpen ? closeFind() : openFind(false)">
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.2" stroke="currentColor" stroke-width="1.6" fill="none" /><path d="M9.6 9.6L14 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg><span class="short-label">{{ t('Find') }}</span>
@@ -225,13 +266,13 @@
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 3H2.5v10H4M12 3h1.5v10H12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" /><path d="M5.5 10.5l4.8-4.8 1.2 1.2-4.8 4.8H5.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none" /></svg><span class="short-label">{{ t('Fill in') }}</span>
         <span v-if="placeholderCount" class="badge">{{ placeholderCount }}</span>
       </button>
-      <button data-tab="home" type="button" class="marks-toggle" :title="t('Show formatting marks (Ctrl+Shift+8)')" :aria-label="t('Show formatting marks')" :class="{ on: showMarks }" :aria-pressed="showMarks" @click="toggleMarks">¶</button>
+      <button data-tab="home view" type="button" class="marks-toggle" :title="t('Show formatting marks (Ctrl+Shift+8)')" :aria-label="t('Show formatting marks')" :class="{ on: showMarks }" :aria-pressed="showMarks" @click="toggleMarks">¶</button>
       <span class="sep" data-tab="review" />
       <button data-tab="review" ref="trackButton" type="button" class="track-toggle" :title="lockMode ? `Track Changes: ${lockMode === 'trackedChanges' ? 'always on' : tracking ? 'on' : 'off'} – ${lockMessage}` : 'Track Changes (Ctrl+Shift+E)'" :class="{ on: tracking }" :aria-pressed="tracking" :disabled="!!lockMode" @click="toggleTracking">
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 13.5h5M2 10.5h3M10.5 2.5l3 3-6 6H4.5v-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none" /></svg>
         <span class="label">{{ t('Track changes') }}</span>
       </button>
-      <span data-tab="review" class="changes-group" role="group" :aria-label="t('Tracked changes')">
+      <span data-tab="review" class="changes-group rv" role="group" :aria-label="t('Tracked changes')">
         <button type="button" :title="t('Previous change')" :disabled="!changes.total" @click="gotoChange(-1)">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" fill="none" /></svg>
         </button>
@@ -254,7 +295,7 @@
         </fieldset>
         <span class="badge" :class="{ zero: !changes.total }" :title="changesTitle">{{ changes.total }}</span>
       </span>
-      <select data-tab="review" class="markup-choice" :value="markup" :aria-label="t('Show markup')" :title="t('What the tracked changes look like, as Word’s Display for Review: all markup, simple markup (a line in the margin beside each change), no markup (the text as it will be once they are accepted) or the original (the text before them, read-only). Only how the page shows them: the changes stay in the file')" @change="setMarkup($event.target.value)">
+      <select data-tab="review view" class="markup-choice" :value="markup" :aria-label="t('Show markup')" :title="t('What the tracked changes look like, as Word’s Display for Review: all markup, simple markup (a line in the margin beside each change), no markup (the text as it will be once they are accepted) or the original (the text before them, read-only). Only how the page shows them: the changes stay in the file')" @change="setMarkup($event.target.value)">
         <option value="all">{{ t('All markup') }}</option>
         <option value="simple">{{ t('Simple markup') }}</option>
         <option value="none">{{ t('No markup') }}</option>
@@ -277,7 +318,7 @@
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 4l1.2 1.2L5.5 3M2 9l1.2 1.2L5.5 8M7.5 4.2h6.5M7.5 9.2h6.5M7.5 13h6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>
         <span class="label">{{ t('Review') }}</span>
       </button>
-      <button data-tab="review" type="button" class="new-comment ph" :title="canComment ? 'New comment (Ctrl+Alt+M)' : `New comment – ${lockMessage}`" :disabled="!canComment" @click="startComment">
+      <button data-tab="review" type="button" class="new-comment ph rv" :title="canComment ? 'New comment (Ctrl+Alt+M)' : `New comment – ${lockMessage}`" :disabled="!canComment" @click="startComment">
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2.5 3h11v7.5H7L4 13v-2.5H2.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="none" /><path d="M8 4.8v4M6 6.8h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
       </button>
       <button data-tab="review" type="button" :title="t('Compare documents: this document against another version of it, on this device – what changed in the text')" :aria-label="t('Compare documents')" @click="startCompare">
@@ -290,7 +331,7 @@
         <svg v-if="reading.paused" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4.5 3l8 5-8 5z" fill="currentColor" /></svg>
         <svg v-else viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4.5 3h2.5v10H4.5zM9 3h2.5v10H9z" fill="currentColor" /></svg>
       </button>
-      <span data-tab="review" v-if="threads.length" class="comment-nav" role="group" :aria-label="t('Go to a comment')">
+      <span data-tab="review" v-if="threads.length" class="comment-nav rv" role="group" :aria-label="t('Go to a comment')">
         <button type="button" :title="t('Previous comment')" :aria-label="t('Previous comment')" @click="gotoComment(-1)">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M5 2.5h9v6.5H9.5L7 11.5V9H5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none" /><path d="M4 9.5L1.5 12 4 14.5" stroke="currentColor" stroke-width="1.5" fill="none" /></svg>
         </button>
@@ -298,11 +339,22 @@
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 2.5h9v6.5H9L6.5 11.5V9H2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none" /><path d="M12 9.5l2.5 2.5-2.5 2.5" stroke="currentColor" stroke-width="1.5" fill="none" /></svg>
         </button>
       </span>
-      <button data-tab="review" v-if="threads.length" type="button" class="comments-toggle" :title="`Comments (${threads.length})`" :aria-label="`Comments (${threads.length})`" :class="{ on: commentsOpen }" :aria-pressed="commentsOpen" @click="commentsOpen = !commentsOpen">
+      <button data-tab="review" v-if="threads.length" type="button" class="comments-toggle rv" :title="`Comments (${threads.length})`" :aria-label="`Comments (${threads.length})`" :class="{ on: commentsOpen }" :aria-pressed="commentsOpen" @click="commentsOpen = !commentsOpen">
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2.5 3h11v7.5H7L4 13v-2.5H2.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none" /></svg>
         <span class="badge">{{ threads.length }}</span>
       </button>
-      <button v-if="!ribbon" type="button" class="ribbon-mode" data-tab="classic" :title="t('Show the tools in tabs (Home, Insert, Layout, References, Review), as Word’s ribbon')" @click="setRibbon(true)">{{ t('Tabs') }}</button>
+      <!-- The View tab, as Word's: the Navigation pane, zoom, and how the page shows (formatting marks
+           and markup are in their own tabs too). Its own tools show in the ribbon's View tab only. -->
+      <button data-tab="view" type="button" class="nav-pane-toggle" :title="t('Navigation pane: move around the document by its headings, and move a heading with its text')" :aria-label="t('Navigation pane')" :class="{ on: navOpen }" :aria-pressed="navOpen" @click="toggleNav">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="1.8" y="2.5" width="12.4" height="11" rx="1" stroke="currentColor" stroke-width="1.3" fill="none" /><path d="M6 2.5v11M3 5h1.8M3 7.2h1.8M3 9.4h1.8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" /></svg><span class="short-label">{{ t('Navigation') }}</span>
+      </button>
+      <select data-tab="view" class="zoom-choice" :value="String(zoomLevel)" :aria-label="t('Zoom')" :title="t('Zoom: the page shown bigger or smaller; the document is unchanged')" @change="setZoom(Number($event.target.value))">
+        <option v-for="z in ZOOMS" :key="z" :value="String(z)">{{ z }}%</option>
+      </select>
+      <button data-tab="view" type="button" :title="t('100%: the page at its own size')" :aria-label="t('Zoom to 100%')" :disabled="zoomLevel === 100" @click="setZoom(100)">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" stroke-width="1.2" fill="none" /><text x="8" y="10.6" text-anchor="middle" font-size="6.5" font-family="system-ui, sans-serif" fill="currentColor">1:1</text></svg><span class="short-label">100%</span>
+      </button>
+      <button v-if="!ribbon" type="button" class="ribbon-mode" data-tab="classic" :title="t('Show the tools in tabs (File, Home, Insert, Layout, References, Review, View), as Word’s ribbon')" @click="setRibbon(true)">{{ t('Tabs') }}</button>
       <button type="button" class="help-toggle" :title="t('Help: keyboard shortcuts and checks (Ctrl+/)')" :aria-label="t('Help')" aria-haspopup="dialog" @click="helpOpen = true">
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.4" fill="none" /><path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.7c-.5.2-.8.6-.8 1.1v.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none" /><circle cx="8" cy="11.6" r=".85" fill="currentColor" /></svg>
       </button>
@@ -2469,11 +2521,13 @@ let toolbarLabels = null;
 // ------------------------------------------------------------------ the ribbon
 
 const RIBBON_TABS = [
+  { id: 'file', label: 'File', title: 'File: download or save, print, PDF, share, mail merge, protect with a password, and inspect the document before it goes' },
   { id: 'home', label: 'Home', title: 'Home: styles, fonts, formatting, paragraphs and lists, Find and formatting marks' },
   { id: 'insert', label: 'Insert', title: 'Insert: a link, check box, date, reference, symbol, picture, signature or table, and filling in placeholders' },
   { id: 'layout', label: 'Layout', title: 'Layout: page setup (paper, margins, sections, headers and footers, watermark), page numbers and table layout' },
   { id: 'references', label: 'References', title: 'References: footnotes, endnotes and updating fields' },
   { id: 'review', label: 'Review', title: 'Review: Track Changes, accepting and rejecting, comments and checking before you send' },
+  { id: 'view', label: 'View', title: 'View: the Navigation pane, zoom, formatting marks and how tracked changes show' },
 ];
 const RIBBON_KEY = 'intact.ribbon';
 const RIBBON_TAB_KEY = 'intact.ribbonTab';
@@ -5189,6 +5243,19 @@ function deleteComment(id) {
 // ------------------------------------------------------------------ accepting and rejecting changes
 
 const changes = reactive({ total: 0 });
+
+// On a phone, a document with tracked changes or comments puts the review's tools first in the
+// toolbar (see the styles: .review-first), and says so once when it opens.
+const reviewFirst = computed(() => changes.total > 0 || threads.value.length > 0);
+const onPhone = () => window.matchMedia?.('(max-width: 720px)').matches;
+let reviewHinted = false;
+onMounted(() => watch(() => [changes.total, threads.value.length], ([n, c]) => {
+  if (reviewHinted || !(n || c)) return;
+  reviewHinted = true;
+  if (!onPhone() || message.value) return;
+  const what = [n && `${n} tracked ${n === 1 ? 'change' : 'changes'}`, c && `${c} ${c === 1 ? 'comment' : 'comments'}`].filter(Boolean).join(' and ');
+  message.value = n ? `${what} to review: Accept and Reject are first in the toolbar` : `${what} to review: they are first in the toolbar`;
+}, { immediate: true }));
 const resolved = reactive({ accepted: 0, rejected: 0 }); // this session, for the review
 const changeMenu = reactive({ open: null, x: 0, y: 0 });
 const changeMenuEl = ref(null);
@@ -9575,6 +9642,12 @@ function downloadBlob(blob, name) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
+/** Print (File tab): the browser's print window, as Ctrl+P opens it (see printBands and the print styles). */
+function printDocument() {
+  closeChooser();
+  window.print();
+}
+
 function openPdfDialog() {
   updatePages();
   hasHighlight.value = !!page.value.querySelector('mark');
@@ -9912,6 +9985,8 @@ async function close() {
 .primary { background: #fff; color: var(--brand); border: 0; border-radius: 4px; padding: 6px 14px; font-weight: 600; cursor: pointer; }
 .primary:disabled { opacity: .6; }
 .open-tab { display: inline-flex; align-items: center; gap: 6px; }
+.close-doc { display: inline-flex; align-items: center; gap: 6px; }
+.close-doc svg { display: none; }
 .chooser.drop-offer { left: 50%; top: 72px; transform: translateX(-50%); width: 340px; max-width: calc(100vw - 16px); max-height: none; font-size: 13px; }
 .drop-offer p { margin: 0; line-height: 1.45; }
 .password-dialog { display: flex; flex-direction: column; gap: 6px; }
@@ -9919,7 +9994,13 @@ async function close() {
 .password-dialog label { font-weight: 600; margin-top: 4px; }
 .password-dialog .pw-error { color: var(--danger); }
 .password-dialog .pw-error:empty { display: none; }
-@media (max-width: 560px) { .open-tab { padding: 5px 8px; } .open-tab .label { display: none; } }
+/* A phone: Open and Close are their icons, so the file's name has room to be read. */
+@media (max-width: 560px) {
+  .open-tab, .close-doc { padding: 5px 8px; }
+  .open-tab .label, .close-doc .label { display: none; }
+  .close-doc svg { display: block; }
+  .primary { padding: 6px 10px; }
+}
 /* On a phone the mark alone is the way to the start page, leaving room for the file and its buttons. */
 @media (max-width: 420px) { :deep(.brand span) { display: none; } }
 /* A narrow phone: the header's gaps and buttons tighten, so its buttons keep fitting with wider fonts. */
@@ -9987,12 +10068,20 @@ async function close() {
 .toolbar.ribbon select.style-choice { min-width: 0; width: 118px; }
 .toolbar.ribbon select.font-choice { width: 120px; }
 .toolbar.ribbon .sep { margin: 0 2px; }
+/* The File and View tabs' own tools are the ribbon's: Download's menu (▾) and the status bar (zoom,
+   Headings) have them in "All tools" and on a phone. */
+.toolbar:not(.ribbon) [data-tab="file"], .toolbar:not(.ribbon) [data-tab="view"] { display: none !important; }
+@media (max-width: 720px) { .toolbar [data-tab="file"], .toolbar [data-tab="view"] { display: none !important; } }
+.toolbar select.zoom-choice { width: 78px; min-width: 0; }
 @media (min-width: 721px) {
-  .toolbar.ribbon[data-active="home"] [data-tab]:not([data-tab="home"]),
-  .toolbar.ribbon[data-active="insert"] [data-tab]:not([data-tab="insert"]),
-  .toolbar.ribbon[data-active="layout"] [data-tab]:not([data-tab="layout"]),
-  .toolbar.ribbon[data-active="references"] [data-tab]:not([data-tab="references"]),
-  .toolbar.ribbon[data-active="review"] [data-tab]:not([data-tab="review"]) { display: none !important; }
+  /* A tool shows in the tabs data-tab names (a space-separated list, as ¶ is in Home and View). */
+  .toolbar.ribbon[data-active="file"] [data-tab]:not([data-tab~="file"]),
+  .toolbar.ribbon[data-active="home"] [data-tab]:not([data-tab~="home"]),
+  .toolbar.ribbon[data-active="insert"] [data-tab]:not([data-tab~="insert"]),
+  .toolbar.ribbon[data-active="layout"] [data-tab]:not([data-tab~="layout"]),
+  .toolbar.ribbon[data-active="references"] [data-tab]:not([data-tab~="references"]),
+  .toolbar.ribbon[data-active="review"] [data-tab]:not([data-tab~="review"]),
+  .toolbar.ribbon[data-active="view"] [data-tab]:not([data-tab~="view"]) { display: none !important; }
   .toolbar.ribbon .help-toggle { margin-left: auto; }
 }
 /* A phone: its one row of every tool, scrolling sideways, whatever the choice here. */
@@ -10221,6 +10310,13 @@ async function close() {
      or date, signature, picture and comment; the rest follow, a swipe away. */
   .toolbar .ph { order: -1; }
   .toolbar .sep { display: none; }
+  /* A document with tracked changes or comments to go through: Undo and Redo, then the review's
+     tools (previous and next change, Accept and Reject, with their names, and the comments), then
+     the rest, as approving a document between meetings needs them. */
+  .toolbar.review-first .ur { order: -4; }
+  .toolbar.review-first .changes-group.rv { order: -3; }
+  .toolbar.review-first .rv { order: -2; }
+  .toolbar.review-first .changes-group .labelled .label { display: inline; }
 }
 /* Touch: targets a finger can hit. */
 @media (pointer: coarse) {

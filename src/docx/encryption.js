@@ -4,9 +4,12 @@
 // with AES in 4096-byte segments under a random key, that key encrypted with one derived from the
 // password (a salted hash, hashed again 100,000 times), and an HMAC over the encrypted package so a
 // change to it is noticed; all of it in a compound file (see cfb.js). The browser's Web Crypto does
-// the hashing and AES. Office 2007's Standard Encryption, and the older RC4 kinds, aren't opened.
+// the AES, the HMAC and single hashes; the password's rounds are hashed by sha.js, without a promise
+// per round (which takes seconds in Firefox). Office 2007's Standard Encryption is opened too (and
+// saved as Agile); the older RC4 kinds aren't.
 
 import { readCfb, writeCfb } from './cfb.js';
+import { digest } from './sha.js';
 
 /** Thrown when a password is needed (`reason` 'needed') or the one given is wrong ('wrong'). */
 export class PasswordError extends Error {
@@ -127,7 +130,7 @@ async function passwordKeys(password, { hashName, salt, keyBytes }, spin, blocks
   for (let i = 0; i < spin; i++) {
     view.setUint32(0, i, true);
     buf.set(h, 4);
-    h = await hash(hashName, buf);
+    h = digest(hashName, buf); // synchronous: a promise per round would take seconds in Firefox
   }
   return Promise.all(blocks.map(async (b) => sized(await hash(hashName, concat(h, new Uint8Array(b))), keyBytes)));
 }
@@ -238,7 +241,7 @@ async function decryptStandard(info, pkg, password) {
   for (let i = 0; i < 50000; i++) {
     bv.setUint32(0, i, true);
     buf.set(h, 4);
-    h = await hash('SHA-1', buf);
+    h = digest('SHA-1', buf);
   }
   h = await hash('SHA-1', concat(h, le32(0)));
   const xor = (b) => new Uint8Array(64).map((_, i) => b ^ (h[i] || 0));

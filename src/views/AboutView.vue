@@ -49,7 +49,7 @@
         <li>Show formatting marks (¶): spaces, tabs, line breaks and paragraph ends</li>
         <li>Paragraph style (Normal, Title, Heading 1–3 and the document's own styles, such as Heading 4, Quote and Caption) and alignment</li>
         <li>Find and replace (Ctrl+F, Ctrl+H)</li>
-        <li>The tools in tabs, as Word's ribbon (Home, Insert, Layout, References, Review), or all of them in one toolbar ("All tools")</li>
+        <li>The tools in tabs, as Word's ribbon (File, Home, Insert, Layout, References, Review, View), or all of them in one toolbar ("All tools"). On a phone, a document with tracked changes or comments puts Accept, Reject and the comments first in the toolbar</li>
         <li>The toolbar from the keyboard: Alt+F10 goes to it, the arrow keys along it, Esc back to the text</li>
         <li>Track Changes for your own edits, formatting included, with your name, as Word records them</li>
         <li>Review your changes before downloading, with a reminder to update the table of contents, cross-references and bibliography in Word</li>
